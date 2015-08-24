@@ -72,15 +72,8 @@ public class LcastServer extends EmbedHttpServer {
 			return;
 		}
 		if ("/launcher".equalsIgnoreCase(path)) {
-			PackageManager pm = app.getPackageManager();
-			Intent i = new Intent(Intent.ACTION_MAIN);
-			i.addCategory(Intent.CATEGORY_LAUNCHER);
-			i.setPackage(app.getPackageName());
-			ResolveInfo ri = pm.resolveActivity(i, 0);
-			i = new Intent(Intent.ACTION_MAIN);
-			i.addCategory(Intent.CATEGORY_LAUNCHER);
 			response.setContentTypeText();
-			response.write(ri.activityInfo.name.getBytes("utf-8"));
+			response.write(getLauncherName().getBytes("utf-8"));
 			return;
 		}
 		if (("post".equalsIgnoreCase(method) || "put".equalsIgnoreCase(method))
@@ -156,7 +149,8 @@ public class LcastServer extends EmbedHttpServer {
 			return;
 		}
 		if ("/ids.xml".equalsIgnoreCase(path)) {
-			String Rn = app.getPackageName() + ".R";
+			String packagename = getLauncherName().substring(0, getLauncherName().lastIndexOf("."));
+			String Rn = packagename + ".R";
 			Class<?> Rclazz = app.getClassLoader().loadClass(Rn);
 			String str = new IdProfileBuilder(context.getResources())
 					.buildIds(Rclazz);
@@ -166,7 +160,8 @@ public class LcastServer extends EmbedHttpServer {
 			return;
 		}
 		if ("/public.xml".equalsIgnoreCase(path)) {
-			String Rn = app.getPackageName() + ".R";
+			String packagename = getLauncherName().substring(0,getLauncherName().lastIndexOf("."));
+			String Rn = packagename + ".R";
 			Class<?> Rclazz = app.getClassLoader().loadClass(Rn);
 			String str = new IdProfileBuilder(context.getResources())
 					.buildPublic(Rclazz);
@@ -306,4 +301,14 @@ public class LcastServer extends EmbedHttpServer {
 		return sb.toString();
 	}
 
+	private static String getLauncherName(){
+		PackageManager pm = app.getPackageManager();
+		Intent i = new Intent(Intent.ACTION_MAIN);
+		i.addCategory(Intent.CATEGORY_LAUNCHER);
+		i.setPackage(app.getPackageName());
+		ResolveInfo ri = pm.resolveActivity(i, 0);
+		i = new Intent(Intent.ACTION_MAIN);
+		i.addCategory(Intent.CATEGORY_LAUNCHER);
+		return ri.activityInfo.name;
+	}
 }
