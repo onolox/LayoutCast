@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 __author__ = 'mmin18'
-__version__ = '1.50821'
+__version__ = '1.50826'
 __plugin__ = '1'
 
 from subprocess import Popen, PIPE, check_call
@@ -40,7 +40,7 @@ def cexec_fail_exit(args, code, stdout, stderr):
         print(stderr)
         exit(code)
 
-def cexec(args, callback = cexec_fail_exit, addPath = None,exitcode=1):
+def cexec(args, callback = cexec_fail_exit, addPath = None, exitcode=1):
     env = None
     if addPath:
         import copy
@@ -48,11 +48,14 @@ def cexec(args, callback = cexec_fail_exit, addPath = None,exitcode=1):
         env['PATH'] = addPath + os.path.pathsep + env['PATH']
     p = Popen(args, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=env)
     output, err = p.communicate()
-    if callback and p.returncode:
-       callback(args,exitcode,output,err)
+    code = p.returncode
+    if code and exitcode:
+        code = exitcode
+    if callback:
+       callback(args, code, output, err)
     return output
 
-def curl(url, body=None, ignoreError=False,exitcode=-1):
+def curl(url, body=None, ignoreError=False, exitcode=1):
     import sys
     try:
         if sys.version_info >= (3, 0):
@@ -171,24 +174,12 @@ def package_name(dir):
 
 def package_name_fromapk(dir, sdkdir):
     #Get the package name from maxd
-    aaptpath = get_aapt(sdkdir)
-    if aaptpath:
-        apkpath = os.path.join(dir,'build','outputs','apk')
-        #Get the lastmodified *.apk file
-        maxt = 0
-        maxd = None
-        for dirpath, dirnames, files in os.walk(apkpath):
-            for fn in files:
-                if fn.endswith('.apk') and not fn.endswith('-unaligned.apk') and not fn.endswith('-unsigned.apk'):
-                    lastModified = os.path.getmtime(os.path.join(dirpath, fn))
-                    if lastModified > maxt:
-                        maxt = lastModified
-                        maxd = os.path.join(dirpath, fn)
-        if maxd:
-            aaptargs = [aaptpath, 'dump','badging', maxd]
-            output = cexec(aaptargs, callback=None)
-            for pn in re.findall('package: name=\'([^\']+)\'', output):
-                return pn
+    (aaptpath,apkpath) = get_apk_path(dir,sdkdir)
+    if apkpath:
+        aaptargs = [aaptpath, 'dump','badging', apkpath]
+        output = cexec(aaptargs, callback=None)
+        for pn in re.findall('package: name=\'([^\']+)\'', output):
+            return pn
     return package_name(dir)
 
 def isResName(name):
@@ -546,6 +537,13 @@ def getresourcexml(content):
         return (publicxml,idsxml)
 
 def get_resinfo_fromapk(dir,sdkdir):
+    (aaptpath,apkpath) = get_apk_path(dir,sdkdir)
+    if apkpath:
+        aaptargs = [aaptpath, 'dump','resources', apkpath]
+        output = cexec(aaptargs, callback=None)
+        return output
+
+def get_apk_path(dir,sdkdir):
     aaptpath = get_aapt(sdkdir)
     if aaptpath:
         apkpath = os.path.join(dir,'build','outputs','apk')
@@ -559,10 +557,7 @@ def get_resinfo_fromapk(dir,sdkdir):
                     if lastModified > maxt:
                         maxt = lastModified
                         maxd = os.path.join(dirpath, fn)
-        if maxd:
-            aaptargs = [aaptpath, 'dump','resources', maxd]
-            output = cexec(aaptargs, callback=None)
-            return output
+        return (aaptpath,maxd)
 
 if __name__ == "__main__":
 
@@ -705,13 +700,13 @@ if __name__ == "__main__":
                 fp.write(publicxml)
             with open(os.path.join(binresdir, 'values/ids.xml'), 'w') as fp:
                 fp.write(idsxml)
-        else:
-            data = curl('http://127.0.0.1:%d/ids.xml'%port,exitcode=8)
-            with open(os.path.join(binresdir, 'values/ids.xml'), 'w') as fp:
-                fp.write(data)
-            data = curl('http://127.0.0.1:%d/public.xml'%port,exitcode=9)
-            with open(os.path.join(binresdir, 'values/public.xml'), 'w') as fp:
-                fp.write(data)
+        # else:
+            # data = curl('http://127.0.0.1:%d/ids.xml'%port,exitcode=8)
+            # with open(os.path.join(binresdir, 'values/ids.xml'), 'w') as fp:
+            #     fp.write(data)
+            # data = curl('http://127.0.0.1:%d/public.xml'%port,exitcode=9)
+            # with open(os.path.join(binresdir, 'values/public.xml'), 'w') as fp:
+            #     fp.write(data)
         
         aaptpath = get_aapt(sdkdir)
         if not aaptpath:
@@ -821,9 +816,10 @@ if __name__ == "__main__":
             javacargs.extend(msrclist)
             # remove all cache if javac fail
             def remove_cache_and_exit(args, code, stdout, stderr):
-                maven_libs_cache_file = os.path.join(bindir, 'cache-javac-maven.json')
-                if os.path.isfile(maven_libs_cache_file):
-                    os.remove(maven_libs_cache_file)
+                if code:
+                    maven_libs_cache_file = os.path.join(bindir, 'cache-javac-maven.json')
+                    if os.path.isfile(maven_libs_cache_file):
+                        os.remove(maven_libs_cache_file)
                 cexec_fail_exit(args, code, stdout, stderr)
             cexec(javacargs, callback=remove_cache_and_exit,exitcode=19)
 
