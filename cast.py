@@ -700,13 +700,13 @@ if __name__ == "__main__":
                 fp.write(publicxml)
             with open(os.path.join(binresdir, 'values/ids.xml'), 'w') as fp:
                 fp.write(idsxml)
-        # else:
-            # data = curl('http://127.0.0.1:%d/ids.xml'%port,exitcode=8)
-            # with open(os.path.join(binresdir, 'values/ids.xml'), 'w') as fp:
-            #     fp.write(data)
-            # data = curl('http://127.0.0.1:%d/public.xml'%port,exitcode=9)
-            # with open(os.path.join(binresdir, 'values/public.xml'), 'w') as fp:
-            #     fp.write(data)
+        else:
+            data = curl('http://127.0.0.1:%d/ids.xml'%port,exitcode=8)
+            with open(os.path.join(binresdir, 'values/ids.xml'), 'w') as fp:
+                fp.write(data)
+            data = curl('http://127.0.0.1:%d/public.xml'%port,exitcode=9)
+            with open(os.path.join(binresdir, 'values/public.xml'), 'w') as fp:
+                fp.write(data)
         
         aaptpath = get_aapt(sdkdir)
         if not aaptpath:
