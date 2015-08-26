@@ -524,6 +524,46 @@ def get_maven_jars(libs):
                 break
     return jars
 
+def getresourcexml(content):
+    if content:
+        mathrul = "attr|id|style|string|dimen|color|array|drawable|layout|anim|integer|animator|interpolator|transition|raw"
+        output = re.finditer(r'resource (0x7f[0-f]{6}).*('+mathrul+')\/(.+)\:.*',content)
+        idsnum = []
+        publicxml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" + "<resources>\n"
+        idsxml = publicxml
+        for match in output:
+            id = str(match.group(1))
+            if id not in idsnum:
+                idsnum.append(id)
+                publicinfo = "  <public type=\"" + str(match.group(2))+ "\" name=\"" + str(match.group(3)) + "\" id=\"" + str(match.group(1)) +"\" />\n"
+                publicxml += publicinfo
+                if str(match.group(2)) == "id":
+                    idinfo = "  <item type=\"id\" name=\"" + str(match.group(3)) + "\" />\n"
+                    idsxml += idinfo
+
+        publicxml += "</resources>"
+        idsxml += "</resources>"
+        return (publicxml,idsxml)
+
+def get_resinfo_fromapk(dir,sdkdir):
+    aaptpath = get_aapt(sdkdir)
+    if aaptpath:
+        apkpath = os.path.join(dir,'build','outputs','apk')
+        #Get the lastmodified *.apk file
+        maxt = 0
+        maxd = None
+        for dirpath, dirnames, files in os.walk(apkpath):
+            for fn in files:
+                if fn.endswith('.apk') and not fn.endswith('-unaligned.apk') and not fn.endswith('-unsigned.apk'):
+                    lastModified = os.path.getmtime(os.path.join(dirpath, fn))
+                    if lastModified > maxt:
+                        maxt = lastModified
+                        maxd = os.path.join(dirpath, fn)
+        if maxd:
+            aaptargs = [aaptpath, 'dump','resources', maxd]
+            output = cexec(aaptargs, callback=None)
+            return output
+
 if __name__ == "__main__":
 
     dir = '.'
@@ -658,13 +698,20 @@ if __name__ == "__main__":
         binresdir = os.path.join(bindir, 'res')
         if not os.path.exists(os.path.join(binresdir, 'values')):
             os.makedirs(os.path.join(binresdir, 'values'))
-
-        data = curl('http://127.0.0.1:%d/ids.xml'%port,exitcode=8)
-        with open(os.path.join(binresdir, 'values/ids.xml'), 'w') as fp:
-            fp.write(data)
-        data = curl('http://127.0.0.1:%d/public.xml'%port,exitcode=9)
-        with open(os.path.join(binresdir, 'values/public.xml'), 'w') as fp:
-            fp.write(data)
+        rescontent = get_resinfo_fromapk(dir,sdkdir)
+        if rescontent:
+            (publicxml,idsxml) = getresourcexml(rescontent)
+            with open(os.path.join(binresdir, 'values/public.xml'), 'w') as fp:
+                fp.write(publicxml)
+            with open(os.path.join(binresdir, 'values/ids.xml'), 'w') as fp:
+                fp.write(idsxml)
+        else:
+            data = curl('http://127.0.0.1:%d/ids.xml'%port,exitcode=8)
+            with open(os.path.join(binresdir, 'values/ids.xml'), 'w') as fp:
+                fp.write(data)
+            data = curl('http://127.0.0.1:%d/public.xml'%port,exitcode=9)
+            with open(os.path.join(binresdir, 'values/public.xml'), 'w') as fp:
+                fp.write(data)
         
         aaptpath = get_aapt(sdkdir)
         if not aaptpath:
