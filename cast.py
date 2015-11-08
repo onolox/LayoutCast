@@ -132,14 +132,31 @@ def __deps_list_gradle(list, project):
             ideps.append(proj.replace(':', os.path.sep))
     if len(ideps) == 0:
         return
-
+    #get the real path
+    ex_libs = {}
+    par = os.path.abspath(os.path.join(project, os.pardir))
+    if os.path.isfile(os.path.join(par, 'settings.gradle')):
+        data = open_as_text(os.path.join(par, 'settings.gradle'))
+        for proj in re.findall(r'''project\(\'\:(.+)\'\)\.projectDir\s*\=\s*new\s*File\(.*['"](.+)['"]\)''',data):
+            ex_libs[proj[0]] = proj[1]
+    deptmp = []
+    for dep in ideps:
+        if dep in ex_libs:
+            deptmp.append(ex_libs[dep])
+        else:
+            deptmp.append(dep)
+    ideps = deptmp
     path = project
     for i in range(1, 3):
         path = os.path.abspath(os.path.join(path, os.path.pardir))
+        pathtmp = path
         b = True
         deps = []
         for idep in ideps:
-            dep = os.path.join(path, idep)
+            for par in  re.findall(r'.*(\.\.\/).+',idep):
+                pathtmp = os.path.abspath(os.path.join(path, os.path.pardir))
+            idep = idep.replace('../','')
+            dep = os.path.join(pathtmp, idep)
             if not os.path.isdir(dep):
                 b = False
                 break
@@ -382,6 +399,10 @@ def list_aar_projects(dir, deps):
                                 list1.append(parent)
                         elif os.path.isdir(s) and not s in list1 and countResDir(s) > 0:
                             list1.append(s)
+    # if os.path.isdir(os.path.join(dir, 'build', 'intermediates', 'exploded-aar')):
+    #     for dirpath, dirnames, files in os.walk(os.path.join(dir, 'build', 'intermediates', 'exploded-aar')):
+    #         if 'res' in dirnames:
+    #             list1.append(os.path.join(dirpath,'res'))
     list2 = []
     for ppath in list1:
         parpath = os.path.abspath(os.path.join(ppath, os.pardir))
@@ -417,7 +438,7 @@ def get_adb(path):
 
 def get_aapt(path):
     execname = os.name=='nt' and 'aapt.exe' or 'aapt'
-    if os.path.isdir(path) and os.path.isdir(os.path.join(path, 'build-tools')):
+    if path and os.path.isdir(path) and os.path.isdir(os.path.join(path, 'build-tools')):
         btpath = os.path.join(path, 'build-tools')
         minv = LooseVersion('0')
         minp = None
@@ -511,11 +532,20 @@ def search_path(dir, filename):
     if os.path.sep in filename:
         dir0 = filename[0:filename.index(os.path.sep)]
     list = []
+    parpath = None
     for dirpath, dirnames, files in os.walk(dir):
         if re.findall(r'[/\\+]androidTest[/\\+]', dirpath) or '/.' in dirpath:
             continue
-        if dir0 in dirnames and os.path.isfile(os.path.join(dirpath, filename)):
-            list.append(dirpath)
+        if dir0 in dirnames :
+            parpath = dirpath
+            break;
+    if parpath:
+        for dirpath, dirnames, files in os.walk(parpath):
+            if 'R.class' in files:
+                print parpath
+                list.append(parpath)
+                break;
+        
     if len(list) == 1:
         return list[0]
     elif len(list) > 1:
@@ -532,6 +562,9 @@ def search_path(dir, filename):
                 maxd = ddir
         return maxd
     else:
+        if os.path.sep in filename:
+            filename_pre = filename[0:filename.rfind(os.path.sep)]
+            print filename_pre
         return os.path.join(dir, 'debug')
 
 def get_maven_libs(projs):
