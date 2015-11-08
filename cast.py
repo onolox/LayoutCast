@@ -418,7 +418,7 @@ def get_android_jar(path):
     if not os.path.isdir(platforms):
         return None
     api = 0
-    result = None
+    result = []
     for pd in os.listdir(platforms):
         pd = os.path.join(platforms, pd)
         if os.path.isdir(pd) and os.path.isfile(os.path.join(pd, 'source.properties')) and os.path.isfile(os.path.join(pd, 'android.jar')):
@@ -428,7 +428,18 @@ def get_android_jar(path):
                 a = int(m.group(1))
                 if a > api:
                     api = a
-                    result = os.path.join(pd, 'android.jar')
+                    result.append(os.path.join(pd, 'android.jar'))
+    api = 0
+    for pd in os.listdir(platforms):
+        pd = os.path.join(platforms, pd)
+        if os.path.isdir(pd) and os.path.isfile(os.path.join(pd, 'source.properties')) and os.path.isfile(os.path.join(pd, 'android.jar')):
+            s = open_as_text(os.path.join(pd, 'source.properties'))
+            m = re.search(r'^AndroidVersion.ApiLevel\s*[=:]\s*(.*)$', s, re.MULTILINE)
+            if m:
+                a = int(m.group(1))
+                if a > api and a < 23:
+                    api = a
+                    result.append(os.path.join(pd, 'android.jar'))              
     return result
 
 def get_adb(path):
@@ -812,8 +823,10 @@ if __name__ == "__main__":
             aaptargs.append(assets_path)
         aaptargs.append('-M')
         aaptargs.append(manifestpath(dir))
-        aaptargs.append('-I')
-        aaptargs.append(android_jar)
+        for andr_jar in android_jar:
+            aaptargs.append('-I')
+            aaptargs.append(andr_jar)
+        
         cexec(aaptargs,exitcode=18)
 
         with open(os.path.join(bindir, 'res.zip'), 'rb') as fp:
@@ -831,7 +844,7 @@ if __name__ == "__main__":
 
             launcher = curl('http://127.0.0.1:%d/launcher'%port,exitcode = 13)
 
-            classpath = [android_jar]
+            classpath = android_jar
             for dep in adeps:
                 dlib = libdir(dep)
                 if dlib:
