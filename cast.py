@@ -646,28 +646,29 @@ def getresourcexml(content):
         idsxml += "</resources>"
         return (publicxml,idsxml)
 
-def get_resinfo_fromapk(dir,sdkdir):
-    (aaptpath,apkpath) = get_apk_path(dir,sdkdir)
-    if apkpath:
-        aaptargs = [aaptpath, 'dump','resources', apkpath]
-        output = cexec(aaptargs, callback=None)
-        return output
+# def get_resinfo_fromapk(dir,sdkdir):
+#     (aaptpath,apkpath) = get_apk_path(dir,sdkdir)
+#     if apkpath:
+#         aaptargs = [aaptpath, 'dump','resources', apkpath]
+#         output = cexec(aaptargs, callback=None)
+#         return output
 
-def get_apk_path(dir,sdkdir):
-    aaptpath = get_aapt(sdkdir)
-    if aaptpath:
+def get_apk_path(dir):
+    if not is_gradle_project(dir):
+        apkpath = os.path.join(dir,'bin')
+    else:
         apkpath = os.path.join(dir,'build','outputs','apk')
-        #Get the lastmodified *.apk file
-        maxt = 0
-        maxd = None
-        for dirpath, dirnames, files in os.walk(apkpath):
-            for fn in files:
-                if fn.endswith('.apk') and not fn.endswith('-unaligned.apk') and not fn.endswith('-unsigned.apk'):
-                    lastModified = os.path.getmtime(os.path.join(dirpath, fn))
-                    if lastModified > maxt:
-                        maxt = lastModified
-                        maxd = os.path.join(dirpath, fn)
-        return (aaptpath,maxd)
+    #Get the lastmodified *.apk file
+    maxt = 0
+    maxd = None
+    for dirpath, dirnames, files in os.walk(apkpath):
+        for fn in files:
+            if fn.endswith('.apk') and not fn.endswith('-unaligned.apk') and not fn.endswith('-unsigned.apk'):
+                lastModified = os.path.getmtime(os.path.join(dirpath, fn))
+                if lastModified > maxt:
+                    maxt = lastModified
+                    maxd = os.path.join(dirpath, fn)
+    return maxd
 
 def scan_port(adbpath, pnlist, projlist):
     port = 0
