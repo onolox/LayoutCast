@@ -1,7 +1,9 @@
 ﻿#!/usr/bin/python
+from sys import stderr
+from re import match
 
 __author__ = 'mmin18'
-__version__ = '1.50827'
+__version__ = '1.51827'
 __plugin__ = '1'
 
 import argparse
@@ -49,6 +51,7 @@ def cexec(args, callback=cexec_fail_exit, addPath=None, exitcode=1):
     p = Popen(args, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=env)
     output, err = p.communicate()
     code = p.returncode
+
     if code and exitcode:
         code = exitcode
     if callback:
@@ -665,6 +668,38 @@ def scan_port(adbpath, pnlist, projlist):
             cexec([adbpath, 'forward', '--remove', 'tcp:%d' % (41128 + i)], callback=None)
     return port, prodir, packagename
 
+# Get only the  resources that exists in the local project
+# Fix for the "appcompat like" libs
+def filter_public_xml(args, code, stdout, stderr):    
+    if code != 0 and re.search(r"declared here is not defined.", stderr) :
+        listMatches = re.findall(r"(?<=error: Public symbol ).+(?= declared here is not defined)", stderr)
+
+        if os.path.exists(os.path.join(binresdir, "values", "public.xml")):
+            publicXml = open(os.path.join(binresdir, "values", "public.xml"), "r")
+            tempStr = ""
+            listMatchesSplitted = []
+            
+            for mt in listMatches:
+                listMatchesSplitted.append(mt.split("/"))
+            
+            for line in publicXml.readlines():
+                isMatch = True
+                for mt in listMatchesSplitted:
+                    if  line.find(mt[0]) > -1 and line.find(mt[1]) > -1: 
+                        isMatch = False
+                        break
+                
+                if isMatch:
+                    tempStr += line 
+        
+            publicXml = open(os.path.join(binresdir, "values", "public.xml"), "w")     
+            publicXml.write(tempStr)     
+            publicXml.close()
+            
+        cexec(args, cexec_fail_exit, exitcode=18)
+    else:
+        cexec_fail_exit(args, code, stdout, stderr)
+
 if __name__ == "__main__":
 
     directory = '.'
@@ -847,7 +882,7 @@ if __name__ == "__main__":
             aaptargs.append('-I')
             aaptargs.append(andr_jar)
         
-        cexec(aaptargs, exitcode=18)
+        cexec(aaptargs, filter_public_xml, exitcode=18)   
 
         with open(os.path.join(bindir, 'res.zip'), 'rb') as fp:
             curl('http://127.0.0.1:%d/pushres' % port, body=fp.read(), exitcode=11)
