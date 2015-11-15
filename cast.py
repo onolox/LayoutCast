@@ -3,7 +3,7 @@ from sys import stderr
 from re import match
 
 __author__ = 'mmin18'
-__version__ = '1.51827'
+__version__ = '1.51927'
 __plugin__ = '1'
 
 import argparse
@@ -21,6 +21,8 @@ import zipfile
 # http://stackoverflow.com/questions/377017/test-if-executable-exists-in-python
 def is_exe(fpath):
     return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+
 def which(program):
     fpath, fname = os.path.split(program)
     if fpath:
@@ -35,12 +37,14 @@ def which(program):
 
     return None
 
+
 def cexec_fail_exit(args, code, stdout, stderr):
     if code != 0:
         print('Fail to exec %s' % args)
         print(stdout)
         print(stderr)
         exit(code)
+
 
 def cexec(args, callback=cexec_fail_exit, addPath=None, exitcode=1):
     env = None
@@ -58,6 +62,7 @@ def cexec(args, callback=cexec_fail_exit, addPath=None, exitcode=1):
         callback(args, code, output, err)
     return output
 
+
 def curl(url, body=None, ignoreError=False, exitcode=1):
     try:
         if sys.version_info >= (3, 0):
@@ -73,6 +78,7 @@ def curl(url, body=None, ignoreError=False, exitcode=1):
             print(e)
             exit(exitcode)
 
+
 def open_as_text(path):
     if not path or not os.path.isfile(path):
         return ''
@@ -82,11 +88,14 @@ def open_as_text(path):
     print('fail to open %s' % path)
     return ''
 
+
 def is_gradle_project(directory):
     return os.path.isfile(os.path.join(directory, 'build.gradle'))
 
+
 def parse_properties(path):
     return os.path.isfile(path) and dict(line.strip().split('=') for line in open(path) if ('=' in line and not line.startswith('#'))) or {}
+
 
 def balanced_braces(arg):
     if '{' not in arg:
@@ -108,9 +117,11 @@ def balanced_braces(arg):
             chars.append(c)
     return ''
 
+
 def remove_comments(code):
     # remove comments in groovy
     return re.sub(r'''(/\*([^*]|[\r\n]|(\*+([^*/]|[\r\n])))*\*+/)|(//.*)''', '', code)
+
 
 def __deps_list_eclipse(a_list, project):
     prop = parse_properties(os.path.join(project, 'project.properties'))
@@ -121,6 +132,7 @@ def __deps_list_eclipse(a_list, project):
             __deps_list_eclipse(a_list, absdep)
             if not absdep in a_list:
                 a_list.append(absdep)
+
 
 def __deps_list_gradle(a_list, project):
     sFile = open_as_text(os.path.join(project, 'build.gradle'))
@@ -154,7 +166,7 @@ def __deps_list_gradle(a_list, project):
         b = True
         deps = []
         for idep in ideps:
-            for par in  re.findall(r'.*(\.\.\/).+', idep):
+            for par in re.findall(r'.*(\.\.\/).+', idep):
                 pathtmp = os.path.abspath(os.path.join(path, os.path.pardir))
             idep = idep.replace('../', '')
             dep = os.path.join(pathtmp, idep)
@@ -169,6 +181,7 @@ def __deps_list_gradle(a_list, project):
                     a_list.append(dep)
             break
 
+
 def deps_list(directory):
     if is_gradle_project(directory):
         a_list = []
@@ -179,17 +192,20 @@ def deps_list(directory):
         __deps_list_eclipse(a_list, directory)
         return a_list
 
+
 def manifest_path(directory):
     if os.path.isfile(os.path.join(directory, 'AndroidManifest.xml')):
         return os.path.join(directory, 'AndroidManifest.xml')
     if os.path.isfile(os.path.join(directory, 'src', 'main', 'AndroidManifest.xml')):
         return os.path.join(directory, 'src', 'main', 'AndroidManifest.xml')
 
+
 def package_name(directory):
     path = manifest_path(directory)
     data = open_as_text(path)
     for pn in re.findall('package=\"([\w\d_\.]+)\"', data):
         return pn
+
 
 def get_apk_path(directory):
     if not is_gradle_project(directory):
@@ -208,6 +224,7 @@ def get_apk_path(directory):
                     maxd = os.path.join(dirpath, fn)
     return maxd
 
+
 def package_name_fromapk(directory, sdkdir):
     # Get the package name from maxd
     aaptpath = get_aapt(sdkdir)
@@ -219,6 +236,7 @@ def package_name_fromapk(directory, sdkdir):
             for pn in re.findall('package: name=\'([^\']+)\'', output):
                 return pn
     return package_name(directory)
+
 
 def get_latest_packagename(dirlist, sdkdir):
     maxt = 0
@@ -233,6 +251,7 @@ def get_latest_packagename(dirlist, sdkdir):
                     maxd = directory
     if maxd:
         return package_name_fromapk(maxd, sdkdir)
+
 
 def isRes_Name(name):
     if name == 'drawable' or name.startswith('drawable-'):
@@ -257,6 +276,7 @@ def isRes_Name(name):
         return 1
     return 0
 
+
 def count_Res_Dir(directory):
     c = 0
     d = 0
@@ -271,6 +291,7 @@ def count_Res_Dir(directory):
         return 0
     return c
 
+
 def count_Asset_Dir(directory):
     a = 0
     if os.path.isdir(directory):
@@ -278,6 +299,7 @@ def count_Asset_Dir(directory):
             if not subd.startswith('.'):
                 a += 1
     return a
+
 
 def res_dir(directory):
     dir1 = os.path.join(directory, 'res')
@@ -291,6 +313,7 @@ def res_dir(directory):
     else:
         return dir1
 
+
 def asset_dir(directory):
     dir1 = os.path.join(directory, 'assets')
     dir2 = os.path.join(directory, 'src', 'main', 'assets')
@@ -303,12 +326,14 @@ def asset_dir(directory):
     else:
         return dir1
 
+
 def get_asset_from_apk(apk_filename, dest_dir):
     with zipfile.ZipFile(apk_filename) as zf:
         for member in zf.infolist():
             path = dest_dir
             if member.filename.startswith('assets/'):
                 zf.extract(member, path)
+
 
 def count_Src_Dir2(directory, lastBuild=0, a_list=None):
     count = 0
@@ -325,6 +350,7 @@ def count_Src_Dir2(directory, lastBuild=0, a_list=None):
                     a_list.append(os.path.join(dirpath, fn))
     return (count, lastModified)
 
+
 def src_dir2(directory, lastBuild=0, alist=None):
     for srcdir in [os.path.join(directory, 'src', 'main', 'java'), os.path.join(directory, 'src')]:
         olist = None
@@ -337,12 +363,14 @@ def src_dir2(directory, lastBuild=0, alist=None):
             return (srcdir, count, lastModified)
     return (None, 0, 0)
 
+
 def lib_dir(directory):
     ddir = os.path.join(directory, 'libs')
     if os.path.isdir(ddir):
         return ddir
     else:
         return None
+
 
 def is_launchable_project(directory):
     if is_gradle_project(directory):
@@ -356,6 +384,7 @@ def is_launchable_project(directory):
             return True
     return False
 
+
 def __append_project(a_list, directory, depth):
     if package_name(directory):
         a_list.append(directory)
@@ -366,6 +395,7 @@ def __append_project(a_list, directory, depth):
             cdir = os.path.join(directory, cname)
             if os.path.isdir(cdir):
                 __append_project(a_list, cdir, depth - 1)
+
 
 def list_projects(directory):
     a_list = []
@@ -380,6 +410,7 @@ def list_projects(directory):
     else:
         __append_project(a_list, directory, 2)
     return a_list
+
 
 def list_aar_projects(directory, deps):
     pnlist = [package_name(i) for i in deps]
@@ -412,6 +443,7 @@ def list_aar_projects(directory, deps):
             list2.append(ppath)
     return list2
 
+
 def get_android_jar(path):
     if not os.path.isdir(path):
         return None
@@ -440,13 +472,15 @@ def get_android_jar(path):
                 a = int(m.group(1))
                 if a > api and a < 23:
                     api = a
-                    result.append(os.path.join(pd, 'android.jar'))              
+                    result.append(os.path.join(pd, 'android.jar'))
     return result
+
 
 def get_adb(path):
     execname = os.name == 'nt' and 'adb.exe' or 'adb'
     if os.path.isdir(path) and is_exe(os.path.join(path, 'platform-tools', execname)):
         return os.path.join(path, 'platform-tools', execname)
+
 
 def get_aapt(path):
     execname = os.name == 'nt' and 'aapt.exe' or 'aapt'
@@ -461,6 +495,7 @@ def get_aapt(path):
                     minp = os.path.join(btpath, pn, execname)
         return minp
 
+
 def get_dx(path):
     execname = os.name == 'nt' and 'dx.bat' or 'dx'
     if os.path.isdir(path) and os.path.isdir(os.path.join(path, 'build-tools')):
@@ -473,6 +508,7 @@ def get_dx(path):
                     minv = LooseVersion(pn)
                     minp = os.path.join(btpath, pn, execname)
         return minp
+
 
 def get_android_sdk(directory, condf=get_android_jar):
     s = open_as_text(os.path.join(directory, 'local.properties'))
@@ -499,6 +535,7 @@ def get_android_sdk(directory, condf=get_android_jar):
     path = os.path.expanduser('~/AppData/Local/Android/sdk')
     if path and os.path.isdir(path) and condf(path):
         return path
+
 
 def get_javac(directory):
     execname = os.name == 'nt' and 'javac.exe' or 'javac'
@@ -539,6 +576,7 @@ def get_javac(directory):
                 if minp:
                     return minp
 
+
 def search_path(directory, filename):
     dir0 = filename
     if os.path.sep in filename:
@@ -548,7 +586,7 @@ def search_path(directory, filename):
     for dirpath, dirnames, files in os.walk(directory):
         if re.findall(r'[/\\+]androidTest[/\\+]', dirpath) or '/.' in dirpath:
             continue
-        if dir0 in dirnames :
+        if dir0 in dirnames:
             parpath = dirpath
             break;
     if parpath:
@@ -557,7 +595,7 @@ def search_path(directory, filename):
                 print parpath
                 a_list.append(parpath)
                 break;
-        
+
     if len(a_list) == 1:
         return a_list[0]
     elif len(a_list) > 1:
@@ -579,6 +617,7 @@ def search_path(directory, filename):
             print filename_pre
         return os.path.join(directory, 'debug')
 
+
 def get_maven_libs(projs):
     maven_deps = []
     for proj in projs:
@@ -591,6 +630,7 @@ def get_maven_libs(projs):
                 if not mvndeps in maven_deps:
                     maven_deps.append(mvndeps)
     return maven_deps
+
 
 def get_maven_jars(libs):
     if not libs:
@@ -625,7 +665,8 @@ def get_maven_jars(libs):
                         jars.append(os.path.join(dirpath, fn))
                 break
     return jars
-    
+
+
 def get_resource_xml(content):
     if content:
         mathrul = "attr|iD|style|string|dimen|color|array|drawable|layout|anim|integer|animator|interpolator|transition|raw"
@@ -633,7 +674,7 @@ def get_resource_xml(content):
         idsnum = []
         publicxml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" + "<resources>\n"
         idsxml = publicxml
-        
+
         for match in output:
             iD = str(match.group(1))
             if iD not in idsnum:
@@ -648,6 +689,7 @@ def get_resource_xml(content):
         idsxml += "</resources>"
         return (publicxml, idsxml)
 
+
 def scan_port(adbpath, pnlist, projlist):
     port = 0
     prodir = None
@@ -655,7 +697,7 @@ def scan_port(adbpath, pnlist, projlist):
     for i in range(0, 10):
         cexec([adbpath, 'forward', 'tcp:%d' % (41128 + i), 'tcp:%d' % (41128 + i)])
         output = curl('http://127.0.0.1:%d/packagename' % (41128 + i), ignoreError=True)
-        if output and output in pnlist :
+        if output and output in pnlist:
             index = pnlist.index(output)  # index of this app in projlist
             state = curl('http://127.0.0.1:%d/appstate' % (41128 + i), ignoreError=True)
             if state and int(state) >= 2:
@@ -668,37 +710,39 @@ def scan_port(adbpath, pnlist, projlist):
             cexec([adbpath, 'forward', '--remove', 'tcp:%d' % (41128 + i)], callback=None)
     return port, prodir, packagename
 
+
 # Get only the  resources that exists in the local project
 # Fix for the "appcompat like" libs
-def filter_public_xml(args, code, stdout, stderr):    
-    if code != 0 and re.search(r"declared here is not defined.", stderr) :
+def filter_public_xml(args, code, stdout, stderr):
+    if code != 0 and re.search(r"declared here is not defined.", stderr):
         listMatches = re.findall(r"(?<=error: Public symbol ).+(?= declared here is not defined)", stderr)
 
         if os.path.exists(os.path.join(binresdir, "values", "public.xml")):
             publicXml = open(os.path.join(binresdir, "values", "public.xml"), "r")
             tempStr = ""
             listMatchesSplitted = []
-            
+
             for mt in listMatches:
                 listMatchesSplitted.append(mt.split("/"))
-            
+
             for line in publicXml.readlines():
                 isMatch = True
                 for mt in listMatchesSplitted:
-                    if  line.find(mt[0]) > -1 and line.find(mt[1]) > -1: 
+                    if line.find(mt[0]) > -1 and line.find(mt[1]) > -1:
                         isMatch = False
                         break
-                
+
                 if isMatch:
-                    tempStr += line 
-        
-            publicXml = open(os.path.join(binresdir, "values", "public.xml"), "w")     
-            publicXml.write(tempStr)     
+                    tempStr += line
+
+            publicXml = open(os.path.join(binresdir, "values", "public.xml"), "w")
+            publicXml.write(tempStr)
             publicXml.close()
-            
+
         cexec(args, cexec_fail_exit, exitcode=18)
     else:
         cexec_fail_exit(args, code, stdout, stderr)
+
 
 if __name__ == "__main__":
 
@@ -766,6 +810,9 @@ if __name__ == "__main__":
     deps = deps_list(directory)
     bindir = is_gradle and os.path.join(directory, 'build', 'lcast') or os.path.join(directory, 'bin', 'lcast')
 
+    if not os.path.exists(os.path.join(bindir, "lastBuildSrc")):  # just to initiate files if not exists
+        open(os.path.join(bindir, "lastBuildSrc"), "w").write("0")
+
     # check if the /res and /src has changed
     lastBuild = 0
     rdir = is_gradle and os.path.join(directory, 'build', 'outputs', 'apk') or os.path.join(directory, 'bin')
@@ -809,17 +856,22 @@ if __name__ == "__main__":
         if sdir:
             srcs.append(sdir)
             latestSrcModified = max(latestSrcModified, smt)
+
     resModified = latestResModified > lastBuild
-    srcModified = latestSrcModified > lastBuild
+    srcModified = latestSrcModified > lastBuild and round(latestSrcModified * 100) > round(float(open(os.path.join(bindir, "lastBuildSrc"), "r").read()) * 100)
+
     targets = ''
     if resModified and srcModified:
         targets = 'both /res and /src'
+        open(os.path.join(bindir, "lastBuildSrc"), "w").write(str(latestSrcModified))
     elif resModified:
         targets = '/res'
     elif srcModified:
         targets = '/src'
+        open(os.path.join(bindir, "lastBuildSrc"), "w").write(str(latestSrcModified))
     else:
         print('%s has no /res or /src changes' % (packagename))
+        open(os.path.join(bindir, "lastBuildSrc"), "w").write("0")
         exit(0)
 
     if is_gradle:
@@ -881,12 +933,12 @@ if __name__ == "__main__":
         for andr_jar in android_jar:
             aaptargs.append('-I')
             aaptargs.append(andr_jar)
-        
-        cexec(aaptargs, filter_public_xml, exitcode=18)   
+
+        cexec(aaptargs, filter_public_xml, exitcode=18)
 
         with open(os.path.join(bindir, 'res.zip'), 'rb') as fp:
             curl('http://127.0.0.1:%d/pushres' % port, body=fp.read(), exitcode=11)
-        
+
     if srcModified:
         vmversion = curl('http://127.0.0.1:%d/vmversion' % port, ignoreError=True)
         if vmversion == None:
@@ -926,7 +978,7 @@ if __name__ == "__main__":
                     maven_jars = maven_libs_cache.get('jars')
                 elif maven_libs:
                     maven_jars = get_maven_jars(maven_libs)
-                    cache = {'version':1, 'from':maven_libs, 'jars':maven_jars}
+                    cache = {'version': 1, 'from': maven_libs, 'jars': maven_jars}
                     try:
                         with open(maven_libs_cache_file, 'w') as fp:
                             json.dump(cache, fp)
@@ -962,6 +1014,8 @@ if __name__ == "__main__":
             javacargs.append('-sourcepath')
             javacargs.append(os.pathsep.join(srcs))
             javacargs.extend(msrclist)
+
+
             # remove all cache if javac fail
             def remove_cache_and_exit(args, code, stdout, stderr):
                 if code:
@@ -969,6 +1023,8 @@ if __name__ == "__main__":
                     if os.path.isfile(maven_libs_cache_file):
                         os.remove(maven_libs_cache_file)
                 cexec_fail_exit(args, code, stdout, stderr)
+
+
             cexec(javacargs, callback=remove_cache_and_exit, exitcode=19)
 
             dxpath = get_dx(sdkdir)
