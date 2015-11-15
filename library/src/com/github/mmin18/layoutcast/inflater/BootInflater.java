@@ -51,14 +51,20 @@ public class BootInflater extends BaseInflater {
 		}
 		systemInflater = inflater;
 		Class<?> cCtxImpl = app.getBaseContext().getClass();
+		boolean ctxFetcherExisted,sysFetcherExisted;
 		if ("android.app.ContextImpl".equals(cCtxImpl.getName())) {
 			try {
 				ClassLoader cl = cCtxImpl.getClassLoader();
+				ctxFetcherExisted = CxtImpSFetcherExisted();
+				sysFetcherExisted = SysRegSFetcherExisted();
+				if (!ctxFetcherExisted && !sysFetcherExisted){return;}
 				Class<?> cStaticFetcher = cl
-						.loadClass("android.app.ContextImpl$StaticServiceFetcher");
+						.loadClass(ctxFetcherExisted? "android.app.ContextImpl$StaticServiceFetcher"
+								:"android.app.SystemServiceRegistry$StaticServiceFetcher");
 				Class<?> cFetcherContainer = null;
 				for (int i = 1; i < 50; i++) {
-					String cn = "android.app.ContextImpl$" + i;
+					String cn = ctxFetcherExisted ? ("android.app.ContextImpl$" + i):
+							("android.app.SystemServiceRegistry$" + i);
 					try {
 						Class<?> c = cl.loadClass(cn);
 						if (cStaticFetcher.isAssignableFrom(c)) {
@@ -75,14 +81,20 @@ public class BootInflater extends BaseInflater {
 				Field f = cStaticFetcher.getDeclaredField("mCachedInstance");
 				f.setAccessible(true);
 				f.set(fetcher, new BootInflater(app));
-				f = cCtxImpl.getDeclaredField("SYSTEM_SERVICE_MAP");
+				if (ctxFetcherExisted){
+					f = cCtxImpl.getDeclaredField("SYSTEM_SERVICE_MAP");
+				}
+				else{
+					Class<?> sysRegistry = cl.loadClass("android.app.SystemServiceRegistry");
+					f = sysRegistry.getDeclaredField("SYSTEM_SERVICE_FETCHERS");
+				}
 				f.setAccessible(true);
 				HashMap<String, Object> map = (HashMap<String, Object>) f
 						.get(null);
 				map.put(Context.LAYOUT_INFLATER_SERVICE, fetcher);
 			} catch (Exception e) {
 				throw new RuntimeException(
-						"unable to initialize application for BootInflater");
+						"unable to initialize application for BootInflater" + e);
 			}
 		} else {
 			throw new RuntimeException("application base context class "
@@ -92,6 +104,24 @@ public class BootInflater extends BaseInflater {
 		if (!(app.getSystemService(Context.LAYOUT_INFLATER_SERVICE) instanceof BootInflater)) {
 			throw new RuntimeException(
 					"unable to initialize application for BootInflater");
+		}
+	}
+
+
+	private static boolean CxtImpSFetcherExisted(){
+		try{
+			Class.forName("android.app.ContextImpl$StaticServiceFetcher");
+			return true;
+		} catch (ClassNotFoundException e){
+			return false;
+		}
+	}
+	private static boolean SysRegSFetcherExisted(){
+		try{
+			Class.forName("android.app.SystemServiceRegistry$StaticServiceFetcher");
+			return true;
+		} catch (ClassNotFoundException e){
+			return false;
 		}
 	}
 }
