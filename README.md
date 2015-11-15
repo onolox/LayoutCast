@@ -60,6 +60,9 @@ After restart, you should find a button at right of the run section: ![TOOLBAR](
 		compile 'com.github.mmin18.layoutcast:library:1.+@aar'
 		...
 	}
+	
+**OR** add the lcast.jar to your yourapp/libs folder, **OR** add it has a dependency.
+
 for **dalvik support** you should add below apply from in your build.gradle of your main project
 
 	
