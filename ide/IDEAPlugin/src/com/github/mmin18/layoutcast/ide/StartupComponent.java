@@ -1,6 +1,7 @@
 package com.github.mmin18.layoutcast.ide;
 
 import com.intellij.ide.plugins.PluginManager;
+import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.openapi.components.ApplicationComponent;
 import com.intellij.openapi.extensions.PluginId;
 import com.intellij.util.PathUtil;
@@ -27,47 +28,11 @@ public class StartupComponent implements ApplicationComponent {
     private static double STROKE_VER;
 
     public StartupComponent() {
+        STROKE_FILE = null;
     }
 
     public void initComponent() {
-        new Thread() {
-            @Override
-            public void run() {
-                try {
-                    URL url;
-                    if (TimeZone.getDefault().getRawOffset() == 8 * 3600 * 1000) {
-                        // +8000 is probably china
-                        url = new URL("http://7xkzs8.com1.z0.glb.clouddn.com/cast.py");
-                    } else {
-                        url = new URL("https://raw.githubusercontent.com/mmin18/LayoutCast/master/cast.py");
-                    }
-                    InputStream ins = url.openConnection().getInputStream();
-                    ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                    byte[] buf = new byte[4096];
-                    int l;
-                    while ((l = ins.read(buf)) != -1) {
-                        bos.write(buf, 0, l);
-                    }
-                    ins.close();
-                    bos.close();
-                    byte[] data = bos.toByteArray();
-                    String str = new String(data, "utf-8");
-                    Pattern p = Pattern.compile("^__plugin__\\s*=\\s*['\"](\\d+)['\"]", Pattern.MULTILINE);
-                    Matcher m = p.matcher(str);
-                    if (m.find()) {
-                        String s = m.group(1);
-                        if ("1".equals(s)) {
-                            ByteArrayInputStream bis = new ByteArrayInputStream(data);
-                            UPDATE_VER = CastAction.readVersion(bis);
-                            bis.close();
-                            UPDATE_DATA = data;
-                        }
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }.start();
+
     }
 
     public void disposeComponent() {
@@ -88,14 +53,16 @@ public class StartupComponent implements ApplicationComponent {
                     InputStream ins = new FileInputStream(file);
                     STROKE_VER = CastAction.readVersion(ins);
                     ins.close();
-                } else {
+                }
+                else {
                     ZipFile zf = new ZipFile(cp);
                     ZipEntry ze = zf.getEntry("cast.py");
                     InputStream ins = zf.getInputStream(ze);
                     STROKE_VER = CastAction.readVersion(ins);
                     ins.close();
                 }
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 e.printStackTrace();
             }
         }
@@ -103,47 +70,36 @@ public class StartupComponent implements ApplicationComponent {
     }
 
     public static File getCastFile() {
-        getCastVersion();
-        if (STROKE_VER > UPDATE_VER) {
-            if (STROKE_FILE == null) {
-                try {
-                    File cp = new File(PathUtil.getJarPathForClass(StartupComponent.class));
-                    if (cp.isDirectory()) {
-                        STROKE_FILE = new File(cp, "cast.py");
-                    } else {
-                        ZipFile zf = new ZipFile(cp);
-                        ZipEntry ze = zf.getEntry("cast.py");
-                        InputStream ins = zf.getInputStream(ze);
-                        File tmp = File.createTempFile("lcast", "" + STROKE_VER);
-                        FileOutputStream fos = new FileOutputStream(tmp);
-                        ins = zf.getInputStream(ze);
-                        byte[] buf = new byte[4096];
-                        int l;
-                        while ((l = ins.read(buf)) != -1) {
-                            fos.write(buf, 0, l);
-                        }
-                        fos.close();
-                        ins.close();
-                        STROKE_FILE = tmp;
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+        try {
+            if (PropertiesComponent.getInstance().isValueSet("com.LayouCast.location")) {
+                STROKE_FILE = new File(PropertiesComponent.getInstance().getValue("com.LayouCast.location"));
             }
-            return STROKE_FILE;
-        } else {
-            if (UPDATE_FILE == null) {
-                try {
-                    File tmp = File.createTempFile("lcast", "" + UPDATE_VER);
+            else {
+                File cp = new File(PathUtil.getJarPathForClass(StartupComponent.class));
+                if (cp.isDirectory()) {
+                    STROKE_FILE = new File(cp, "cast.py");
+                }
+                else {
+                    ZipFile zf = new ZipFile(cp);
+                    ZipEntry ze = zf.getEntry("cast.py");
+                    InputStream ins = zf.getInputStream(ze);
+                    File tmp = File.createTempFile("lcast", "" + STROKE_VER);
                     FileOutputStream fos = new FileOutputStream(tmp);
-                    fos.write(UPDATE_DATA);
+                    ins = zf.getInputStream(ze);
+                    byte[] buf = new byte[4096];
+                    int l;
+                    while ((l = ins.read(buf)) != -1) {
+                        fos.write(buf, 0, l);
+                    }
                     fos.close();
-                    UPDATE_FILE = tmp;
-                } catch (Exception e) {
-                    e.printStackTrace();
+                    ins.close();
+                    STROKE_FILE = tmp;
                 }
             }
-            return UPDATE_FILE;
         }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+        return STROKE_FILE;
     }
 }
