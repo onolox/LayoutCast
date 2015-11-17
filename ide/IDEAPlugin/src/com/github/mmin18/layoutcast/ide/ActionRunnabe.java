@@ -57,7 +57,7 @@ public class ActionRunnabe implements Runnable {
         }
         if (pythonCommand == null) {
             popupBollon(-2, "Program \"python\" is not found in PATH");
-            StatUtils.send(castPy, -2, 0);
+
             return;
         }
 
@@ -73,11 +73,13 @@ public class ActionRunnabe implements Runnable {
                 args.add("--sdk");
                 args.add(androidSdk.getAbsolutePath());
             }
+            
             args.add(dir.getAbsolutePath());
             Process p = Runtime.getRuntime().exec(args.toArray(new String[0]), null, dir);
             running = p;
             runTime = System.currentTimeMillis();
             InputStream ins = p.getInputStream();
+            
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             byte[] buf = new byte[4096];
             int l;
@@ -85,6 +87,7 @@ public class ActionRunnabe implements Runnable {
                 bos.write(buf, 0, l);
             }
             ins.close();
+            
             if (bos.size() > 0) {
                 bos.write('\n');
             }
@@ -96,10 +99,10 @@ public class ActionRunnabe implements Runnable {
             int exit = p.waitFor();
             String output = new String(bos.toByteArray());
             popupBollon(exit, output);
-            StatUtils.send(castPy, exit, System.currentTimeMillis() - runTime);
+            //StatUtils.send(castPy, exit, System.currentTimeMillis() - runTime);
         } catch (Exception e) {
             popupBollon(-1, e.toString());
-            StatUtils.send(castPy, -1, System.currentTimeMillis() - runTime);
+            //StatUtils.send(castPy, -1, System.currentTimeMillis() - runTime);
         } finally {
             running = null;
         }
@@ -123,10 +126,8 @@ public class ActionRunnabe implements Runnable {
                     }
                 }
 
-                StatusBar statusBar = WindowManager.getInstance()
-                        .getStatusBar(DataKeys.PROJECT.getData(event.getDataContext()));
-                JBPopupFactory.getInstance()
-                        .createHtmlTextBalloonBuilder(msg, exit == 0 ? MessageType.INFO : MessageType.ERROR, new HyperlinkListener() {
+                StatusBar statusBar = WindowManager.getInstance().getStatusBar(DataKeys.PROJECT.getData(event.getDataContext()));
+                JBPopupFactory.getInstance().createHtmlTextBalloonBuilder(msg, exit == 0 ? MessageType.INFO : MessageType.ERROR, new HyperlinkListener() {
                             @Override
                             public void hyperlinkUpdate(HyperlinkEvent e) {
                                 if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {
@@ -139,8 +140,7 @@ public class ActionRunnabe implements Runnable {
                         })
                         .setFadeoutTime(exit == 0 ? 1500 : 6000)
                         .createBalloon()
-                        .show(RelativePoint.getCenterOf(statusBar.getComponent()),
-                                Balloon.Position.atRight);
+                        .show(RelativePoint.getCenterOf(statusBar.getComponent()), Balloon.Position.atRight);
             }
         });
     }

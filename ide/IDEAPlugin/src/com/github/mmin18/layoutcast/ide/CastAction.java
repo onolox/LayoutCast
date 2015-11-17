@@ -1,13 +1,18 @@
 package com.github.mmin18.layoutcast.ide;
 
+import com.intellij.compiler.server.BuildManager;
+import com.intellij.execution.ExecutionManager;
 import com.intellij.ide.plugins.PluginManager;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.DataKeys;
+import com.intellij.openapi.actionSystem.ShortcutProvider;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.command.CommandProcessor;
 import com.intellij.openapi.extensions.PluginId;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.ui.MessageType;
 import com.intellij.openapi.ui.popup.Balloon;
 import com.intellij.openapi.ui.popup.JBPopupFactory;
@@ -28,35 +33,14 @@ import java.util.regex.Pattern;
 public class CastAction extends AnAction {
 
     public void actionPerformed(final AnActionEvent e) {
-
         Project currentProject = DataKeys.PROJECT.getData(e.getDataContext());
         FileDocumentManager.getInstance().saveAllDocuments();
 
+
         final File dir = new File(currentProject.getBasePath());
-        File castPy = null;
 
-        double projectCastVersion = 0;
-        File f = new File(dir, "cast.py");
-        if (f.length() > 0) {
-            try {
-                FileInputStream fis = new FileInputStream(f);
-                projectCastVersion = readVersion(fis);
-                fis.close();
-                castPy = f;
-            } catch (Exception ex) {
-            }
-        }
-
-        if (StartupComponent.getCastVersion() > projectCastVersion) {
-            File ff = StartupComponent.getCastFile();
-            if (ff != null) {
-                castPy = ff;
-            }
-        }
-
-        new Thread(new ActionRunnabe(dir, castPy, e)).start();
+        new Thread(new ActionRunnabe(dir, StartupComponent.getCastFile(), e)).start();
     }
-
 
     private static final Pattern R_VER = Pattern.compile("^__version__\\s*=\\s*['\"](\\d+\\.\\d+)['\"]", Pattern.MULTILINE);
 
