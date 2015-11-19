@@ -8,7 +8,6 @@ What I needs is a build tool that is easy to setup, fast as Buck, and provide a 
 
 **LayoutCast** is a little tool to help with that, it will cast every changes in your Java source code or resources (including library project) to your phone or emulator within 5 sec, and does not restart your application.
 
-把代码和资源文件的改动直接同步到手机上，应用不需要重启。省去了编译运行漫长的等待，比较适合真机调试的时候使用。
 
 ![GIF](images/cast_res.gif)
 ![GIF](images/cast_code.gif)
@@ -41,7 +40,7 @@ The test project's apk is about 14.3MB, which contains 380k lines of java code a
 
 *If you have already done that, you can skip this step.*
 
-1. Download Android Studio / Intellij plugin <https://github.com/mmin18/LayoutCast/raw/master/ide/IDEAPlugin/IDEAPlugin.jar>
+1. Download Android Studio / Intellij plugin <https://github.com/onolox/LayoutCast/Release/IDEAPlugin.jar>
 2. In Android Studio, go to `Preferences` > `Plugins` > `Install plugin from disk...`
 3. Choose the downloaded file from step #1 to install the plugin.
 
