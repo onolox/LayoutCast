@@ -25,11 +25,6 @@ Youtube demo video: <https://youtu.be/rc04LK2_suU>
 - Support both eclipse and AndroidStudio project.
 - Provide a AndroidStudio plugin to click and cast.
 
-## Limitations
-
-- ~~LayoutCast only support Mac (for now)~~
-- ~~Cast Java code only support ART runtime (Android 5.0)~~
-
 ## Benchmarks
 
 Here is how it compared to Gradle and Facebook Buck:
@@ -54,20 +49,7 @@ After restart, you should find a button at right of the run section: ![TOOLBAR](
 
 ### 2. Android Project & Build System Changes
 
-**First,** you need to setup your project. Add below dependency in your build.gradle:
-
-	dependencies {
-		compile 'com.github.mmin18.layoutcast:library:1.+@aar'
-		...
-	}
-	
-**OR** add the lcast.jar to your yourapp/libs folder, **OR** add it has a dependency.
-
-for **dalvik support** you should add below apply from in your build.gradle of your main project
-
-	
-	
-	apply from: "http://7xnmzw.com1.z0.glb.clouddn.com/dalvik.gradle"
+**First,** you need to setup your project. Add the lcast.jar to your yourapp/libs folder, **OR** add it has a dependency.
 
 
 **Second,** add the following code in your main application class inside `onCreate()` method. And since LayoutCast only necessary when you develop, you should always check if `BuildConfig.DEBUG == true`.
