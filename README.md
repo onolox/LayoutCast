@@ -48,7 +48,7 @@ After restart, you should find a button at right of the run section: ![TOOLBAR](
 
 ### 2. Android Project & Build System Changes
 
-**First,** you need to setup your project. Add the lcast.jar to your yourapp/libs folder, **OR** add it has a dependency.
+**First,** you need to setup your project. Add the LayoutCastLibrary.jar to your yourapp/libs folder, **OR** add it has a dependency.
 
 
 **Second,** add the following code in your main application class inside `onCreate()` method. And since LayoutCast only necessary when you develop, you should always check if `BuildConfig.DEBUG == true`.
