@@ -3,7 +3,7 @@ from sys import stderr
 from re import match
 
 __author__ = 'mmin18'
-__version__ = '1.52000'
+__version__ = '1.51927'
 __plugin__ = '1'
 
 import argparse
@@ -738,30 +738,6 @@ def filter_public_xml(args, code, stdout, stderr):
             publicXml = open(os.path.join(binresdir, "values", "public.xml"), "w")
             publicXml.write(tempStr)
             publicXml.close()
-
-        cexec(args, filter_layouts_xml, exitcode=19)
-
-    else:
-        cexec_fail_exit(args, code, stdout, stderr)
-
-
-# Workaround for not accepted parameters in xml
-def filter_layouts_xml(args, code, stdout, stderr):
-    if code != 0 and re.search(r"Error:.+types not allowed", stderr).group(0):
-        for line in stderr.split(os.linesep):
-            if re.search(r"Error:.+types not allowed", line):
-                xmlFilePath = re.search(r".+.xml", line).group(0)
-                xmlValue = re.search(r"(?<=types not allowed \(at ').+?(?=' with)", line).group(0)
-
-                xmlFileStrTmp = ""
-
-                with open(xmlFilePath, "r", ) as fil:
-                    for line2 in fil.readlines():
-                        if line2.find(xmlValue) == -1:
-                            xmlFileStrTmp += line2
-
-                with open(xmlFilePath, "w", ) as fil:
-                    xmlFileStr = fil.write(xmlFileStrTmp)
 
         cexec(args, cexec_fail_exit, exitcode=18)
     else:
